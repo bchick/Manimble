@@ -149,7 +149,7 @@ function endShow() {
     for (const s of ["#pv-cur", "#pv-next"]) pvDisplay(s).vid.pause();
   } else {
     if (P.scripted) { stopRun(); const a = $("#player-pointer .scriptpointer"); if (a) a.style.display = "none"; }
-    P.scripted = false;
+    P.scripted = false; P.stage = null;
     $("#player").classList.remove("open", "black", "paused"); $("#player-video").pause();
     if (window.pywebview && pywebview.api) pywebview.api.set_fullscreen(false);
     else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});

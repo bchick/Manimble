@@ -1,3 +1,4 @@
 aiohttp>=3.9,<4
 pywinpty>=2.0.13,<4
 pywebview>=5,<7
+keyring>=24,<26

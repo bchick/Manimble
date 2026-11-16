@@ -675,8 +675,11 @@ async function exportTo(kind) {
     const p = await attempt(() => ask(".pptx", "PowerPoint")); if (!p || !p.path) return;
     await act("export", { kind: "pptx", path: p.path, editable: true }, "Export");
   } else if (kind === "mp4") {
+    const o = await movieOptions(); if (!o) return;
     const p = await attempt(() => ask(".mp4", "Movie")); if (!p || !p.path) return;
-    await act("export_movie", { path: p.path, height: 1080 }, "Export");
+    status("Starting the movie…");
+    if (o.script) await attempt(() => rpc("app.export_narrated", { path: p.path, height: o.height }), "Export");
+    else await act("export_movie", { path: p.path, height: o.height }, "Export");
   } else if (kind === "py") {
     const p = await attempt(() => ask(".py", "Python")); if (!p || !p.path) return;
     const r = await act("export_python", { path: p.path }, "Export");
@@ -686,7 +689,7 @@ async function exportTo(kind) {
 function exported(path) { toast("Exported " + path, false, { label: "Show", run: () => rpc("app.reveal", { path }) }); }
 const progress = label => m => {
   if (m.phase === "building" || m.phase === "encoding") status(`${label}: ${m.phase} ${m.done ?? ""}${m.total ? "/" + m.total : ""} ${m.scene || ""}`);
-  else if (m.phase === "done") { status(""); if (m.path) exported(m.path); if (m.pdfError) toast(m.pdfError, true); }
+  else if (m.phase === "done") { status(""); if (m.path) exported(m.path); if (m.pdfError) toast(m.pdfError, true); for (const w of m.warnings || []) toast(w, true); }
   else if (m.phase === "error") { status(""); toast(`${label} failed: ${m.error}`, true); }
   else if (m.phase === "cancelled") status("");
 };

@@ -25,6 +25,7 @@ from pathlib import Path
 
 from aiohttp import WSMsgType, web
 
+from . import narrate, voices
 from . import workspace as wsmod
 from .workspace import Workspace
 
@@ -224,6 +225,8 @@ class App:
         self.engine: Engine | None = None
         self.port = 0
         self.recent_file = wsmod.base() / "recent.json"
+        self.listeners: list = []   # callables given every engine event; one returning True keeps it from the page
+        self.exporting = False
         self.audience = None        # set by the desktop app: opens, closes and swaps the audience window
 
     # ------------------------------------------------------------ plumbing
@@ -237,6 +240,25 @@ class App:
             await c.send_str(s)
         except Exception:  # noqa: BLE001
             self.clients.discard(c)
+
+    def engine_event(self, m: dict):
+        for listen in list(self.listeners):
+            try:
+                if listen(m):
+                    return
+            except Exception:  # noqa: BLE001
+                pass
+        self.broadcast(m)
+
+    async def narrated_export(self, path: str, height: int):
+        self.exporting = True
+        try:
+            r = await narrate.export(self, path, height)
+            self.broadcast({"event": "export_movie", "phase": "done", **r})
+        except Exception as exc:  # noqa: BLE001
+            self.broadcast({"event": "export_movie", "phase": "error", "error": str(exc) or exc.__class__.__name__})
+        finally:
+            self.exporting = False
 
     def authed(self, request: web.Request) -> bool:
         if not secrets.compare_digest(request.query.get("t", ""), self.token):
@@ -320,6 +342,23 @@ class App:
         w = self.workspace
         if cmd == "app.info":
             return self.info()
+        if cmd == "app.voice_services":         # online text-to-speech accounts (keys stay in Credential Manager)
+            return {"services": await asyncio.to_thread(voices.services)}
+        if cmd == "app.voice_connect":
+            await voices.connect(str(a.get("service")), str(a.get("key") or ""))
+            return {"ok": True, "services": await asyncio.to_thread(voices.services)}
+        if cmd == "app.voice_disconnect":
+            if a.get("service") in voices.SERVICES:
+                await asyncio.to_thread(voices.set_key, a["service"], None)
+            return {"ok": True, "services": await asyncio.to_thread(voices.services)}
+        if cmd == "app.speech":                 # an online voice's words as an mp3 (cached)
+            f = await voices.cloud_audio(str(a.get("voice")), str(a.get("text") or "").strip(), float(a.get("rate") or 0.5))
+            return {"path": str(f)}
+        if cmd == "app.open_url":               # only the pages where a key is made
+            if a.get("url") in [v["keyPage"] for v in voices.SERVICES.values()]:
+                os.startfile(a["url"])
+                return {"ok": True}
+            raise RuntimeError("that page cannot be opened from here")
         if cmd == "app.themes":
             return {"themes": themes()}
         if cmd == "app.relay":                  # one window to the others: the presenter tells the audience window
@@ -372,6 +411,16 @@ class App:
             return {"ok": True, "dest": str(dest)}
         if w is None:
             raise RuntimeError("no deck open")
+        if cmd == "app.export_narrated":        # the movie of the scripted presentation: narration and pointer
+            if self.exporting:
+                raise RuntimeError("a narrated movie is already being exported")
+            path = a.get("path") or await self.dialog("save", title="Export Narrated Movie", defaultextension=".mp4",
+                                                      initialfile=self.info()["deck"]["name"] + ".mp4",
+                                                      filetypes=[["Movie", "*.mp4"]])
+            if not path:
+                return {"cancelled": True}
+            asyncio.ensure_future(self.narrated_export(path, int(a.get("height") or 1080)))
+            return {"ok": True}
         if cmd == "app.script_get":             # the presentation script: script.json beside the deck's code
             f = w.work / "script.json"
             try:
@@ -535,7 +584,7 @@ class App:
         app.router.add_static("/static/", WEB)
 
         async def started(_):
-            self.engine = Engine(asyncio.get_running_loop(), self.broadcast)
+            self.engine = Engine(asyncio.get_running_loop(), self.engine_event)
             self.engine.start()
 
         async def cleanup(_):

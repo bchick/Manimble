@@ -46,13 +46,18 @@ To update: `git pull`, then run `setup.ps1` again.
 - Scripted presentations (the Script button): per-build steps that speak words with a Windows text-to-speech
   voice, move an on-screen pointer along a point or traced path, or pause; the show then plays itself, with Space
   or K to pause. Scripts are stored in `script.json` in the macOS app's format
+- Online voices for scripts (ElevenLabs, OpenAI): connect an account in the Script panel; the API key is kept in
+  Windows Credential Manager and speech is cached in `%LOCALAPPDATA%Manimbleoice`
+- Narrated movie export (Export Movie ▸ Export with script): the narration as the soundtrack and the pointer drawn
+  over the slide. System voices are spoken by SAPI here, which has fewer voices than the live show (David and
+  Zira on a stock install); a voice it lacks falls back to the default
 - Find and replace (Ctrl+F, Ctrl+H) across text, formulas and speaker notes, with match case, whole words and
   regular expressions; Replace All is one undo step
 - Import PowerPoint and Beamer; export PDF, PowerPoint, MP4 and a single Python file
 
 ## Not done yet
 
-Editing notes and Feedback Mode inside Presenter View, online voices (ElevenLabs, OpenAI) and movie export with narration for scripts, dark mode on its own, slide
+Editing notes and Feedback Mode inside Presenter View, dark mode on its own, slide
 numbers, backgrounds, the icon library, feedback notes, copy and paste of objects, rulers and snapping guides, pen
 drawing, and `.manimble` packages. The engine already implements most of these; they need UI here.
 Keynote import and export use AppleScript and cannot work on Windows.
@@ -66,12 +71,14 @@ Themes applied here use Windows fonts. Decks written on a Mac often name Mac fon
 apps/windows/
 ├── setup.ps1                 installs everything and makes the shortcuts
 ├── run.py                    starts the app from a checkout
-├── requirements.txt          aiohttp, pywinpty, pywebview
+├── requirements.txt          aiohttp, pywinpty, pywebview, keyring
 ├── tools/smoke_engine.py     renders a deck through the engine, without the UI
 └── manimble_win/
     ├── __main__.py           the window (pywebview / WebView2), or `--serve` for the server alone
     ├── server.py             local bridge: WebSocket <-> engine JSON lines, file serving, dialogs, PDF, terminal
     ├── workspace.py          the working copy (junctions where the Mac app uses symlinks)
+    ├── voices.py             online voices, their keys, and system speech to files
+    ├── narrate.py            the narrated movie: holds, narration track and pointer overlay (ffmpeg)
     ├── agent_instructions.py what coding agents in the terminal are told about the deck
     └── web/                  the editor: index.html, app.js, tools.js (themes, find), script.js (scripted presentations),
                               present.js (shows, Presenter View),

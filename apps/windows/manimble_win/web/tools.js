@@ -242,3 +242,23 @@ document.addEventListener("keydown", ev => {
   ev.preventDefault(); ev.stopPropagation();
   openFind(k === "h");
 }, true);
+
+// ------------------------------------------------------- movie export options
+/** Size, and whether to include the script (offered when the deck has one). Null when cancelled. */
+async function movieOptions() {
+  await ensureScript();
+  const scripted = SC.data.steps.length > 0;
+  return dialogBox(close => {
+    const size = el("select", {}, ...[[720, "1280 × 720"], [1080, "1920 × 1080"], [1440, "2560 × 1440"], [2160, "3840 × 2160"]].map(([h, t]) => el("option", { value: h, textContent: t, selected: h === 1080 })));
+    const withScript = el("input", { type: "checkbox", checked: scripted, disabled: !scripted });
+    const ok = el("button", { className: "primary", textContent: "Choose File…" }), cancel = el("button", { textContent: "Cancel" });
+    ok.onclick = () => close({ height: +size.value, script: scripted && withScript.checked });
+    cancel.onclick = () => close(null);
+    return [el("div", { className: "msg", textContent: "Export Movie" }), size,
+      el("label", { className: "check" }, withScript, "Export with script"),
+      el("div", { className: "detail", textContent: scripted
+        ? "Each build's clip plays, then its last frame is held while its script runs: the narration becomes the movie's soundtrack and the pointer is drawn over the slide."
+        : "This deck has no script, so every build is held for two seconds. Write one with the Script button to narrate the movie." }),
+      el("div", { className: "row" }, el("span", { className: "spacer" }), cancel, ok)];
+  });
+}

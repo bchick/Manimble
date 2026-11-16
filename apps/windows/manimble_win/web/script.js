@@ -62,6 +62,60 @@ function loadVoices() {
   if (SC.open) renderScript(true);
 }
 if (window.speechSynthesis) { speechSynthesis.addEventListener("voiceschanged", loadVoices); loadVoices(); }
+const cloudVoice = () => (/^cloud:(elevenlabs|openai):/.test(SC.data.voice || "") ? SC.data.voice : null);
+async function loadServices() {
+  try { SC.services = (await rpc("app.voice_services", {}, true)).services; } catch (e) { SC.services = SC.services || []; }
+}
+function serviceOf(id) { const m = /^cloud:([a-z]+):/.exec(id || ""); return m && (SC.services || []).find(x => x.id === m[1]); }
+/** Connect, replace the key of, or disconnect an online voice service. The key goes to Windows Credential Manager. */
+async function connectService(svc) {
+  const r = await dialogBox(close => {
+    const key = el("input", { type: "password", placeholder: svc.connected ? "Paste a new key to replace it" : "API key", autocomplete: "off" });
+    const link = el("button", { className: "link", textContent: `Get a key at ${new URL(svc.keyPage).host}…`, onclick: () => rpc("app.open_url", { url: svc.keyPage }).catch(() => {}) });
+    const ok = el("button", { className: "primary", textContent: "Connect" }), cancel = el("button", { textContent: "Cancel" });
+    const row = el("div", { className: "row" }, el("span", { className: "spacer" }));
+    if (svc.connected) row.append(el("button", { textContent: "Disconnect", onclick: () => close({ disconnect: true }) }));
+    row.append(cancel, ok);
+    ok.onclick = () => close(key.value.trim() ? { key: key.value.trim() } : null);
+    cancel.onclick = () => close(null);
+    key.addEventListener("keydown", ev => { if (ev.key === "Enter") ok.click(); });
+    return [el("div", { className: "msg", textContent: svc.connected ? `${svc.name} is connected` : `Connect ${svc.name}` }),
+      el("div", { className: "detail", textContent: `Paste an API key from your ${svc.name} account. It is kept in Windows Credential Manager, never in the deck, and the words of the script are sent to ${svc.name} to be spoken (billed to that account). Speech is cached, so a show replays without calling it again.` }),
+      key, link, row];
+  });
+  if (!r) return;
+  status(r.disconnect ? "" : `Checking the key with ${svc.name}…`);
+  try {
+    const out = await rpc(r.disconnect ? "app.voice_disconnect" : "app.voice_connect", { service: svc.id, key: r.key });
+    SC.services = out.services;
+    toast(r.disconnect ? `${svc.name} disconnected` : `${svc.name} connected`);
+  } catch (e) { toast(`${svc.name} did not accept the key: ${e.message}`, true); }
+  status("");
+  renderScript(true);
+}
+let cloudWarned = false;
+/** Play an online voice's words; resolves when they are over. False when they could not be had. */
+async function speakCloud(run, id, text) {
+  let path;
+  try { path = (await rpc("app.speech", { voice: id, text, rate: typeof SC.data.rate === "number" ? SC.data.rate : MAC_RATE }, true)).path; }
+  catch (e) {
+    if (!cloudWarned) { cloudWarned = true; toast(`The online voice could not be used (${e.message}); a system voice reads the script instead.`, true); }
+    return false;
+  }
+  if (run.cancelled) return true;
+  const a = new Audio(fileUrl(path));
+  return new Promise(resolve => {
+    let done = false;
+    const finish = ok => { if (!done) { done = true; clearInterval(watch); a.pause(); resolve(ok); } };
+    a.onended = () => finish(true);
+    a.onerror = () => finish(false);
+    const watch = setInterval(() => {
+      if (run.cancelled) return finish(true);
+      if (run.paused && !a.paused) a.pause(); else if (!run.paused && a.paused && !a.ended) a.play().catch(() => {});
+    }, 100);
+    a.play().catch(() => finish(false));
+  });
+}
 function chosenVoice() {
   const want = SC.data.winVoice;
   return SC.voices.find(v => v.name === want) || SC.voices.find(v => v.default) || SC.voices[0] || null;
@@ -97,9 +151,14 @@ async function waitRun(run, ms) {             // a wait that pauses with the run
     t = n;
   }
 }
-function speak(run, text) {
+async function speak(run, text) {
   text = (text || "").trim();
-  if (!text) return Promise.resolve();
+  if (!text) return;
+  const cloud = cloudVoice();
+  if (cloud && await speakCloud(run, cloud, text)) return;
+  return speakSystem(run, text);
+}
+function speakSystem(run, text) {
   const words = text.split(/\s+/).length, guess = words / (2.6 * speechRate()) * 1000;
   if (!window.speechSynthesis || !SC.voices.length) return waitRun(run, guess + 400);       // no voice: keep the timing
   // short utterances: some voices stop being reported as finished on long ones
@@ -241,6 +300,7 @@ window.addEventListener("mouseup", () => {
 async function ensureScript() {
   const deck = S.info && S.info.deck && S.info.deck.work;
   if (deck && SC.loadedFor !== deck) { await scriptLoad(); SC.loadedFor = deck; }
+  if (!SC.services) await loadServices();
 }
 async function toggleScript(on) {
   const want = on == null ? !SC.open : !!on;
@@ -295,9 +355,30 @@ function renderScript(force) {
   });
   kids.push(el("div", { className: "f adds" }, el("label", { textContent: "Add" }), btn("Speak", () => addStep("speak")), btn("Mouse", () => addStep("move")), btn("Pause", () => addStep("pause"))));
 
-  const voice = el("select", { style: "flex:1;min-width:0" }, ...SC.voices.map(v => el("option", { textContent: `${v.name} (${v.lang})`, value: v.name, selected: chosenVoice() === v })));
-  voice.onchange = () => { SC.data.winVoice = voice.value; scriptSave(); };
-  if (!SC.voices.length) voice.append(el("option", { textContent: "No text-to-speech voices found" }));
+  const cloud = cloudVoice();
+  const voice = el("select", { style: "flex:1;min-width:0" });
+  const sys = el("optgroup", { label: "On this computer" }, ...SC.voices.map(v => el("option", { textContent: `${v.name} (${v.lang})`, value: "sys:" + v.name, selected: !cloud && chosenVoice() === v })));
+  if (!SC.voices.length) sys.append(el("option", { textContent: "No text-to-speech voices found", disabled: true }));
+  voice.append(sys);
+  for (const svc of SC.services || []) {
+    const g = el("optgroup", { label: `${svc.name} (online${svc.connected ? "" : ", not connected"})` });
+    const ids = svc.voices.map(v => `cloud:${svc.id}:${v.id}`);
+    for (const v of svc.voices) g.append(el("option", { textContent: `✨ ${v.name}`, value: `cloud:${svc.id}:${v.id}`, selected: cloud === `cloud:${svc.id}:${v.id}` }));
+    if (cloud && cloud.startsWith(`cloud:${svc.id}:`) && !ids.includes(cloud)) g.append(el("option", { textContent: `✨ ${cloud.split(":")[2]}`, value: cloud, selected: true }));
+    voice.append(g);
+  }
+  voice.onchange = () => {
+    const v = voice.value;
+    if (v.startsWith("cloud:")) {
+      SC.data.voice = v; cloudWarned = false;
+      const svc = serviceOf(v);
+      if (svc && !svc.connected) connectService(svc);
+    } else {
+      SC.data.winVoice = v.slice(4);
+      if (cloudVoice()) delete SC.data.voice;             // a Mac system voice kept there stays as it is
+    }
+    scriptSave(); renderScript(true);
+  };
   const rate = el("input", { type: "range", min: 0.25, max: 1, step: 0.025, value: typeof SC.data.rate === "number" ? SC.data.rate : MAC_RATE, title: "Speaking speed", style: "flex:1" });
   rate.oninput = () => { SC.data.rate = +rate.value; scriptSave(); };
   const hd = el("input", { type: "number", min: 0, step: 0.5, value: hold() });
@@ -305,6 +386,8 @@ function renderScript(force) {
   const test = btn("Test", () => { stopRun(); const run = SC.run = newRun(); speak(run, "This is the voice of your presentation.").then(() => { if (SC.run === run) SC.run = null; }); });
   kids.push(el("div", { className: "voice" }, el("h3", { textContent: "Voice · whole deck" }),
     el("div", { className: "f" }, el("label", { textContent: "Voice" }), voice, test),
+    el("div", { className: "f" }, el("label", { textContent: "Online" }), ...(SC.services || []).map(svc => {
+      const b = btn(svc.connected ? `${svc.name} ✓` : `Connect ${svc.name}…`, () => connectService(svc)); b.title = svc.connected ? "Connected: replace the key or disconnect" : "Use this service's voices"; return b; })),
     el("div", { className: "f" }, el("label", { textContent: "Speed" }), rate),
     el("div", { className: "f" }, el("label", { textContent: "No script" }), hd, el("span", { className: "loc", textContent: "seconds a build without a script stays up" }))));
   box.replaceChildren(...kids);
@@ -325,8 +408,9 @@ function playerStage() {
 function scriptPage(page, play) {
   stopRun();
   if (!P.scripted) return;
-  const run = SC.run = newRun(), stage = playerStage(), at = P.i;
-  stage.place(null);
+  const run = SC.run = newRun(), at = P.i;
+  const stage = P.stage || (P.stage = playerStage());
+  stage.place(stage.pos);
   $("#player").classList.remove("paused");
   const vid = $("#player-video");
   const go = async () => {
