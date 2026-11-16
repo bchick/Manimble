@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Manimble</title>
+<link rel="stylesheet" href="/static/vendor/codemirror.css">
+<link rel="stylesheet" href="/static/vendor/material-darker.css">
+<link rel="stylesheet" href="/static/vendor/xterm.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app" class="nodeck">
+  <header id="toolbar">
+    <div class="group">
+      <div class="menu"><button data-menu="file">File ▾</button>
+        <div class="drop" id="menu-file">
+          <button data-act="new">New Deck…</button>
+          <button data-act="open">Open Deck…</button>
+          <div class="sub" id="recent"></div>
+          <hr>
+          <button data-act="save" class="needdeck">Save to Original <kbd>Ctrl+S</kbd></button>
+          <button data-act="revert" class="needdeck">Revert to Original</button>
+          <button data-act="reveal" class="needdeck">Show Deck Folder</button>
+          <hr>
+          <button data-act="import">Import PowerPoint or Beamer…</button>
+          <button data-act="export-pdf" class="needdeck">Export PDF…</button>
+          <button data-act="export-pdf-builds" class="needdeck">Export PDF, one page per build…</button>
+          <button data-act="export-pptx" class="needdeck">Export PowerPoint…</button>
+          <button data-act="export-mp4" class="needdeck">Export Movie (MP4)…</button>
+          <button data-act="export-py" class="needdeck">Export Python File…</button>
+        </div>
+      </div>
+      <button data-act="save" class="needdeck" id="btn-save" title="Save to Original (Ctrl+S)">Save</button>
+      <button data-act="undo" class="needdeck" id="btn-undo" title="Undo (Ctrl+Z)">↶</button>
+      <button data-act="redo" class="needdeck" id="btn-redo" title="Redo (Ctrl+Y)">↷</button>
+    </div>
+    <div class="group needdeck">
+      <div class="menu"><button data-menu="slide">Slide ▾</button>
+        <div class="drop" id="menu-slide">
+          <button data-act="slide-new" data-layout="title_content">New Slide: Title and Content</button>
+          <button data-act="slide-new" data-layout="title">New Slide: Title</button>
+          <button data-act="slide-new" data-layout="two_content">New Slide: Two Content</button>
+          <button data-act="slide-new" data-layout="title_only">New Slide: Title Only</button>
+          <button data-act="slide-new" data-layout="blank">New Slide: Blank</button>
+          <hr>
+          <button data-act="slide-duplicate">Duplicate</button>
+          <button data-act="slide-up">Move Up</button>
+          <button data-act="slide-down">Move Down</button>
+          <button data-act="slide-hide">Hide / Unhide</button>
+          <button data-act="slide-delete">Delete</button>
+          <hr>
+          <button data-act="build-new">New Build</button>
+          <button data-act="build-delete">Delete Build</button>
+        </div>
+      </div>
+    </div>
+    <div class="group needdeck" id="tools">
+      <button data-tool="text" title="Text: click on the slide">T</button>
+      <button data-tool="formula" title="Formula (LaTeX): click on the slide">∑</button>
+      <button data-tool="rectangle" title="Rectangle: drag on the slide">▭</button>
+      <button data-tool="rounded" title="Rounded rectangle">▢</button>
+      <button data-tool="ellipse" title="Ellipse">◯</button>
+      <button data-tool="triangle" title="Triangle">△</button>
+      <button data-tool="line" title="Line">╱</button>
+      <button data-tool="arrow" title="Arrow">→</button>
+      <button data-tool="darrow" title="Double arrow">↔</button>
+      <button data-act="insert-image" title="Picture…">🖼</button>
+      <button data-act="insert-table" title="Table…">▦</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="group needdeck">
+      <button data-act="terminal" id="btn-term" title="Terminal (Ctrl+`)">Terminal</button>
+      <div class="menu"><button data-menu="present" class="primary">▶ Present ▾</button>
+        <div class="drop right" id="menu-present">
+          <button data-act="present">From This Slide <kbd>F5</kbd></button>
+          <button data-act="present-start">From the Start</button>
+          <button data-act="present-anim">With Animations, From This Slide</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <aside id="nav"><div id="slides"></div></aside>
+    <section id="center">
+      <div id="stagewrap">
+        <div id="frame">
+          <img id="png" draggable="false" alt="">
+          <div id="composite"></div>
+          <div id="overlay"></div>
+        </div>
+        <div id="sceneerror"></div>
+      </div>
+      <div id="builds"></div>
+    </section>
+    <aside id="side">
+      <div id="inspector"></div>
+      <div id="codehead"><span id="codefile"></span><span class="spacer"></span>
+        <button id="code-revert" title="Discard what you typed">Reset</button>
+        <button id="code-apply" class="primary" title="Apply (Ctrl+Enter)">Apply</button></div>
+      <div id="code"></div>
+      <pre id="codeerror"></pre>
+    </aside>
+  </main>
+  <div id="drawer"><div id="drawerhead"><span>Terminal</span><span class="hint">runs in the deck's working copy — try <code>claude</code></span><span class="spacer"></span><button data-act="terminal-restart">Restart</button><button data-act="terminal">✕</button></div><div id="term"></div></div>
+  <footer id="status"><span id="st-deck"></span><span class="spacer"></span><span id="st-msg"></span><span id="st-busy"></span></footer>
+
+  <div id="welcome">
+    <div class="card">
+      <h1>Manimble <small id="ver"></small></h1>
+      <p>A slide editor for presentations made with Manim. Windows build.</p>
+      <div class="row"><button data-act="new" class="primary">New Deck…</button><button data-act="open">Open Deck…</button><button data-act="open-sample">Open the Sample Deck</button></div>
+      <div id="welcome-recent"></div>
+    </div>
+  </div>
+  <div id="toasts"></div>
+  <div id="player"><img id="player-img" alt=""><video id="player-video" playsinline></video><div id="player-info"></div></div>
+</div>
+<script>window.MANIMBLE_TOKEN = "__TOKEN__";</script>
+<script src="/static/vendor/codemirror.js"></script>
+<script src="/static/vendor/python.js"></script>
+<script src="/static/vendor/xterm.js"></script>
+<script src="/static/vendor/addon-fit.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

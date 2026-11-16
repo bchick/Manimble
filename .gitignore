@@ -19,3 +19,8 @@ manimble.iconset/
 
 # local release zips
 /out/
+
+# Windows front end: local tooling
+/.claude/
+/.tmp-test/
+/up/

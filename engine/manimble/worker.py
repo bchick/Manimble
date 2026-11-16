@@ -39,7 +39,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   #
 # Always compile the deck from source: Python validates cached bytecode by mtime (seconds) and size, so an edit that
 # keeps a file's length (e.g. one digit in a coordinate) within the same second would otherwise run the old code.
 sys.dont_write_bytecode = True
-sys.pycache_prefix = os.path.join(os.environ.get("TMPDIR", "/tmp"), "manimble-no-pycache")
+sys.pycache_prefix = os.path.join(os.environ.get("TMPDIR") or __import__("tempfile").gettempdir(), "manimble-no-pycache")
 MEDIA_DIR = os.path.abspath(os.environ.get("MANIMBLE_MEDIA_DIR", os.path.join(DECK, "..", "media")))
 MEDIA_DIR_REAL = os.path.realpath(MEDIA_DIR)
 DEPENDENCIES: set[str] = set()
