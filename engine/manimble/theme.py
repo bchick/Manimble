@@ -11,6 +11,7 @@ from __future__ import annotations
 import ast
 import os
 import re
+import sys
 
 from . import darkmode as dm
 from .srcedit import Edit, py_str
@@ -22,6 +23,9 @@ SLIDE_KEYS = ("FONT", "TEXT_COLOR", "MUTED_COLOR", "ACCENT")
 #     FONT, TEXT_COLOR, MUTED_COLOR, ACCENT = "Georgia", "#1D1D1F", "#6E6E73", "#0A66C2"  # manimble theme "Paper"
 # next to a Format Background line with the theme's background.
 MARK = "# manimble theme"
+# What stands in on Windows for the macOS fonts the themes name.
+WINDOWS_FONTS = {"Helvetica Neue": "Segoe UI", "Avenir Next": "Segoe UI", "Chalkboard SE": "Comic Sans MS",
+                 "Palatino": "Palatino Linotype", "Menlo": "Consolas"}
 
 
 def load(theme_id: str) -> dict:
@@ -38,6 +42,8 @@ def load(theme_id: str) -> dict:
                 and st.targets[0].id in KEYS and isinstance(st.value, ast.Constant)):
             out[st.targets[0].id] = st.value.value
     out["_id"] = theme_id
+    if sys.platform == "win32" and out.get("FONT") in WINDOWS_FONTS:    # the themes name fonts that ship with macOS
+        out["FONT"] = WINDOWS_FONTS[out["FONT"]]
     if "THEME" not in out or not dm.HEX.fullmatch(str(out.get("BACKGROUND", ""))):
         raise ValueError(f"theme {theme_id!r} lacks THEME or BACKGROUND")
     return out

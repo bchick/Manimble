@@ -41,16 +41,20 @@ To update: `git pull`, then run `setup.ps1` again.
 - Presenter View (Alt+F5): the show goes full screen on a second display, or into its own window with one display;
   this window shows the current slide, the next build, slide and build notes, a timer and clock, and every slide
   and build to jump to. B blacks out the audience display, R resets the timer, Swap Displays trades the screens
+- Themes (Edit ▸ Theme…): the seven deck themes, for the whole deck or one slide, with a live preview and the
+  black/white swap when the background changes between dark and light; New Deck starts from a theme
+- Find and replace (Ctrl+F, Ctrl+H) across text, formulas and speaker notes, with match case, whole words and
+  regular expressions; Replace All is one undo step
 - Import PowerPoint and Beamer; export PDF, PowerPoint, MP4 and a single Python file
 
 ## Not done yet
 
-Editing notes and Feedback Mode inside Presenter View, narrated scripts, themes and dark mode, find and replace, slide
+Editing notes and Feedback Mode inside Presenter View, narrated scripts, dark mode on its own, slide
 numbers, backgrounds, the icon library, feedback notes, copy and paste of objects, rulers and snapping guides, pen
 drawing, and `.manimble` packages. The engine already implements most of these; they need UI here.
 Keynote import and export use AppleScript and cannot work on Windows.
 
-Decks written on a Mac often name Mac fonts (`Helvetica Neue`); Windows substitutes another font unless you change
+Themes applied here use Windows fonts. Decks written on a Mac often name Mac fonts (`Helvetica Neue`); Windows substitutes another font unless you change
 `FONT` in the deck's `common.py` (to `Segoe UI` or `Arial`, say).
 
 ## How it is put together
@@ -66,7 +70,8 @@ apps/windows/
     ├── server.py             local bridge: WebSocket <-> engine JSON lines, file serving, dialogs, PDF, terminal
     ├── workspace.py          the working copy (junctions where the Mac app uses symlinks)
     ├── agent_instructions.py what coding agents in the terminal are told about the deck
-    └── web/                  the editor: index.html, app.js, present.js (shows, Presenter View), style.css;
+    └── web/                  the editor: index.html, app.js, tools.js (themes, find), present.js (shows, Presenter View),
+                              style.css;
                               vendor/ holds CodeMirror and xterm.js
 ```
 
@@ -76,4 +81,6 @@ endpoints is a shell. For development, `run.py --serve --port 8765 --token dev` 
 
 Working copies, render caches, the recent list and `engine.log` live in `%LOCALAPPDATA%\Manimble`.
 
-The engine needed one change to run on Windows (a temp folder path in `worker.py`).
+The engine needed four small changes for Windows: a temp folder path (`worker.py`), reading `manim.cfg` without
+translating CRLF line ends (`darkmode.py`), retrying a file replace that another process briefly blocks
+(`srcedit.py`), and Windows stand-ins for the macOS fonts the themes name (`theme.py`).

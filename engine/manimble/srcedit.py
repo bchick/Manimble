@@ -16,6 +16,7 @@ import math
 import os
 import re
 import shutil
+import time
 import tokenize
 from dataclasses import dataclass, field
 
@@ -212,7 +213,16 @@ class Project:
         tmp = path + ".manimble.tmp"
         with open(tmp, "wb") as fh:
             fh.write(data)
-        os.replace(tmp, path)
+        # Windows refuses to replace a file another process has open (a render worker importing the module, an
+        # editor or virus scanner reading it); those reads are short, so wait for them
+        for attempt in range(60):
+            try:
+                os.replace(tmp, path)
+                break
+            except PermissionError:
+                if attempt == 59:
+                    raise
+                time.sleep(0.05)
 
     def src(self, rel: str) -> Src:
         data = self.read(rel)

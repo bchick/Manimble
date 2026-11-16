@@ -122,6 +122,7 @@ svg.rubberline { position: absolute; inset: 0; width: 100%; height: 100%; pointe
 .modal .msg { white-space: pre-wrap; margin-bottom: 10px; }
 .modal input, .modal textarea { width: 100%; margin-bottom: 12px; font-size: 14px; }
 .modal .row { display: flex; gap: 8px; }
+.modal input[type=checkbox] { width: auto; margin: 0; flex: none; }
 
 #player { display: none; position: fixed; inset: 0; z-index: 200; background: #000; cursor: none; }
 #player.open { display: block; }
@@ -163,3 +164,32 @@ body.audience #player-info { display: none; }
 .pv-notes { flex: 1; min-height: 60px; overflow-y: auto; padding: 10px 12px; background: var(--panel); border-radius: 6px; white-space: pre-wrap;
   font-size: 19px; line-height: 1.45; user-select: text; }
 .pv-notes.empty::before { content: "No notes"; color: var(--muted); font-size: 14px; }
+
+#findbar { display: none; flex: none; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--line); }
+#findbar.open { display: block; }
+#findbar .frow { display: flex; gap: 6px; align-items: center; }
+#findbar .frow + .frow { margin-top: 6px; }
+#findbar input[type=text] { width: 320px; }
+#findbar label { color: var(--muted); display: flex; gap: 3px; align-items: center; white-space: nowrap; }
+#find-count { min-width: 70px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#find-count.none { color: var(--danger); }
+#find-note { color: var(--muted); }
+#findbar:not(.replace) #find-rrow { display: none; }
+
+.modal.wide { width: 880px; max-width: 94vw; }
+.themes { display: flex; gap: 18px; }
+.themegrid { display: grid; grid-template-columns: repeat(2, 150px); gap: 10px; align-content: start; flex: none; }
+.themecard { border: 2px solid transparent; border-radius: 8px; padding: 0; overflow: hidden; text-align: left; background: none; }
+.themecard.sel { border-color: var(--accent); }
+.themecard .sw { height: 70px; padding: 10px 12px; display: flex; flex-direction: column; justify-content: center; }
+.themecard .sw b { font-size: 17px; font-weight: 600; } .themecard .sw i { font-style: normal; font-size: 11px; }
+.themecard .sw u { display: block; width: 44px; height: 3px; margin: 4px 0; text-decoration: none; }
+.themecard .nm { padding: 3px 8px; font-size: 12px; background: var(--panel2); color: var(--text); }
+.themeside { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.themeprev { position: relative; aspect-ratio: 16/9; background: #000; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+.themeprev img { width: 100%; height: 100%; object-fit: contain; display: block; transition: opacity .15s; }
+.themeprev.loading img { opacity: .35; }
+.themeprev .err { position: absolute; inset: 0; padding: 12px; color: var(--danger); background: #000c; white-space: pre-wrap; overflow: auto; }
+.themeside label { display: flex; gap: 6px; align-items: center; }
+.themeside .detail { color: var(--muted); font-size: 12px; min-height: 50px; }
+.modal select { width: 100%; margin-bottom: 12px; font-size: 14px; }

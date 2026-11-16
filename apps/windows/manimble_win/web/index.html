@@ -35,6 +35,17 @@
       <button data-act="redo" class="needdeck" id="btn-redo" title="Redo (Ctrl+Y)">↷</button>
     </div>
     <div class="group needdeck">
+      <div class="menu"><button data-menu="edit">Edit ▾</button>
+        <div class="drop" id="menu-edit">
+          <button data-act="undo">Undo <kbd>Ctrl+Z</kbd></button>
+          <button data-act="redo">Redo <kbd>Ctrl+Y</kbd></button>
+          <hr>
+          <button data-act="find">Find… <kbd>Ctrl+F</kbd></button>
+          <button data-act="find-replace">Find and Replace… <kbd>Ctrl+H</kbd></button>
+          <hr>
+          <button data-act="themes">Theme…</button>
+        </div>
+      </div>
       <div class="menu"><button data-menu="slide">Slide ▾</button>
         <div class="drop" id="menu-slide">
           <button data-act="slide-new" data-layout="title_content">New Slide: Title and Content</button>
@@ -86,6 +97,26 @@
   <main>
     <aside id="nav"><div id="slides"></div></aside>
     <section id="center">
+      <div id="findbar">
+        <div class="frow">
+          <input id="find-q" type="text" placeholder="Find in text, formulas and notes" spellcheck="false">
+          <span id="find-count"></span>
+          <button data-act="find-prev" title="Previous (Shift+Enter)">▲</button>
+          <button data-act="find-next" title="Next (Enter)">▼</button>
+          <label title="Match case"><input type="checkbox" id="find-case"> Aa</label>
+          <label title="Whole words"><input type="checkbox" id="find-word"> Word</label>
+          <label title="Regular expression"><input type="checkbox" id="find-regex"> .*</label>
+          <label title="Search the speaker notes too"><input type="checkbox" id="find-notes" checked> Notes</label>
+          <span class="spacer"></span>
+          <button data-act="find-close" title="Close (Esc)">✕</button>
+        </div>
+        <div class="frow" id="find-rrow">
+          <input id="find-r" type="text" placeholder="Replace with" spellcheck="false">
+          <button data-act="find-replace-one">Replace</button>
+          <button data-act="find-replace-all">Replace All</button>
+          <span id="find-note"></span>
+        </div>
+      </div>
       <div id="stagewrap">
         <div id="frame">
           <img id="png" draggable="false" alt="">
@@ -147,6 +178,7 @@
 <script src="/static/vendor/xterm.js"></script>
 <script src="/static/vendor/addon-fit.js"></script>
 <script src="/static/app.js"></script>
+<script src="/static/tools.js"></script>
 <script src="/static/present.js"></script>
 </body>
 </html>

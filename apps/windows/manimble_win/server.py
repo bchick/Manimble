@@ -78,6 +78,57 @@ class Title(Deck):
 
 NEW_CFG = "[CLI]\nbackground_color = #000000\npixel_width = 1280\npixel_height = 720\nframe_rate = 30\n"
 
+THEMES = ENGINE / "manimble" / "themes"
+# What stands in on Windows for the macOS fonts the themes name (the engine's theme.py holds the same table).
+WINDOWS_FONTS = {"Helvetica Neue": "Segoe UI", "Avenir Next": "Segoe UI", "Chalkboard SE": "Comic Sans MS",
+                 "Palatino": "Palatino Linotype", "Menlo": "Consolas"}
+
+
+def themes() -> list[dict]:
+    """The engine's deck themes: [{id, name, background, font, text, muted, accent}], Midnight (the default) first."""
+    import ast
+    out = []
+    for f in sorted(THEMES.glob("*.py")):
+        v = {}
+        try:
+            for st in ast.parse(f.read_text(encoding="utf-8")).body:
+                if (isinstance(st, ast.Assign) and len(st.targets) == 1 and isinstance(st.targets[0], ast.Name)
+                        and isinstance(st.value, ast.Constant)):
+                    v[st.targets[0].id] = st.value.value
+        except (OSError, SyntaxError):
+            continue
+        if "THEME" in v and "BACKGROUND" in v:
+            out.append({"id": f.stem, "name": v["THEME"], "background": v["BACKGROUND"],
+                        "font": WINDOWS_FONTS.get(v.get("FONT"), v.get("FONT")), "text": v.get("TEXT_COLOR", "#FFFFFF"),
+                        "muted": v.get("MUTED_COLOR", "#888888"), "accent": v.get("ACCENT", "#4C8DFF")})
+    out.sort(key=lambda t: (t["id"] != "midnight", t["name"]))
+    return out
+
+
+def theme_source(theme_id: str) -> str:
+    """A theme's common.py for a new deck, with its font replaced by one Windows has."""
+    import re
+    if not re.fullmatch(r"[\w-]+", theme_id) or not (THEMES / f"{theme_id}.py").is_file():
+        raise RuntimeError(f"no theme {theme_id}")
+    src = (THEMES / f"{theme_id}.py").read_text(encoding="utf-8")
+    for mac, win in WINDOWS_FONTS.items():
+        src = src.replace(f'FONT = "{mac}"', f'FONT = "{win}"')
+    return src
+
+
+NEW_SLIDES_THEMED = '''"""Slides of the deck."""
+
+from common import *
+
+
+class Title(Deck):
+    def construct(self):
+        title = Text({title}, font_size=64, font=FONT, color=TEXT_COLOR).move_to((0, 0.7, 0))  # manimble
+        self.add(title)  # manimble
+        subtitle = Text("Subtitle", font_size=32, font=FONT, color=MUTED_COLOR).move_to((0, -0.8, 0))  # manimble
+        self.add(subtitle)  # manimble
+'''
+
 IMAGE_TYPES = [["Pictures", "*.png *.jpg *.jpeg *.gif *.tif *.tiff *.bmp *.webp *.svg"], ["All files", "*.*"]]
 
 
@@ -269,6 +320,8 @@ class App:
         w = self.workspace
         if cmd == "app.info":
             return self.info()
+        if cmd == "app.themes":
+            return {"themes": themes()}
         if cmd == "app.relay":                  # one window to the others: the presenter tells the audience window
             self.broadcast({"event": "relay", "m": a.get("m")})
             return {"ok": True}
@@ -291,10 +344,14 @@ class App:
                 raise RuntimeError(f"{deck.parent} already exists")
             deck.mkdir(parents=True)
             (deck.parent / "assets").mkdir(exist_ok=True)
-            (deck / "common.py").write_text(NEW_COMMON, encoding="utf-8", newline=chr(10))
-            (deck / "slides.py").write_text(NEW_SLIDES.format(title=json.dumps(name)), encoding="utf-8", newline=chr(10))
+            theme = next((t for t in themes() if t["id"] == a.get("theme")), None)
+            common = theme_source(theme["id"]) if theme else NEW_COMMON
+            slides = (NEW_SLIDES_THEMED if theme else NEW_SLIDES).format(title=json.dumps(name))
+            cfg = NEW_CFG.replace("#000000", theme["background"]) if theme else NEW_CFG
+            (deck / "common.py").write_text(common, encoding="utf-8", newline=chr(10))
+            (deck / "slides.py").write_text(slides, encoding="utf-8", newline=chr(10))
             (deck / "order.txt").write_text("Title\n", encoding="utf-8")
-            (deck / "manim.cfg").write_text(NEW_CFG, encoding="utf-8", newline=chr(10))
+            (deck / "manim.cfg").write_text(cfg, encoding="utf-8", newline=chr(10))
             return await self.open_deck(str(deck))
         if cmd == "app.dialog":
             return {"path": await self.dialog(a.get("kind", "open"), **{k: v for k, v in a.items()
