@@ -80,6 +80,7 @@
     </div>
     <div class="spacer"></div>
     <div class="group needdeck">
+      <button data-act="script" id="btn-script" title="Write the words, pointer moves and pauses of a scripted presentation">Script</button>
       <button data-act="terminal" id="btn-term" title="Terminal (Ctrl+`)">Terminal</button>
       <div class="menu"><button data-menu="present" class="primary">▶ Present ▾</button>
         <div class="drop right" id="menu-present">
@@ -89,6 +90,10 @@
           <hr>
           <button data-act="presenter">Presenter View <kbd>Alt+F5</kbd></button>
           <button data-act="presenter-anim">Presenter View with Animations</button>
+          <hr>
+          <button data-act="present-script">Scripted Presentation</button>
+          <button data-act="present-script-here">Scripted Presentation from This Slide</button>
+          <button data-act="present-script-anim">Scripted Presentation with Animations</button>
         </div>
       </div>
     </div>
@@ -129,6 +134,7 @@
     </section>
     <aside id="side">
       <div id="inspector"></div>
+      <div id="scriptpane"></div>
       <div id="codehead"><span id="codefile"></span><span class="spacer"></span>
         <button id="code-revert" title="Discard what you typed">Reset</button>
         <button id="code-apply" class="primary" title="Apply (Ctrl+Enter)">Apply</button></div>
@@ -179,6 +185,7 @@
 <script src="/static/vendor/addon-fit.js"></script>
 <script src="/static/app.js"></script>
 <script src="/static/tools.js"></script>
+<script src="/static/script.js"></script>
 <script src="/static/present.js"></script>
 </body>
 </html>

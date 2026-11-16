@@ -43,13 +43,16 @@ To update: `git pull`, then run `setup.ps1` again.
   and build to jump to. B blacks out the audience display, R resets the timer, Swap Displays trades the screens
 - Themes (Edit ▸ Theme…): the seven deck themes, for the whole deck or one slide, with a live preview and the
   black/white swap when the background changes between dark and light; New Deck starts from a theme
+- Scripted presentations (the Script button): per-build steps that speak words with a Windows text-to-speech
+  voice, move an on-screen pointer along a point or traced path, or pause; the show then plays itself, with Space
+  or K to pause. Scripts are stored in `script.json` in the macOS app's format
 - Find and replace (Ctrl+F, Ctrl+H) across text, formulas and speaker notes, with match case, whole words and
   regular expressions; Replace All is one undo step
 - Import PowerPoint and Beamer; export PDF, PowerPoint, MP4 and a single Python file
 
 ## Not done yet
 
-Editing notes and Feedback Mode inside Presenter View, narrated scripts, dark mode on its own, slide
+Editing notes and Feedback Mode inside Presenter View, online voices (ElevenLabs, OpenAI) and movie export with narration for scripts, dark mode on its own, slide
 numbers, backgrounds, the icon library, feedback notes, copy and paste of objects, rulers and snapping guides, pen
 drawing, and `.manimble` packages. The engine already implements most of these; they need UI here.
 Keynote import and export use AppleScript and cannot work on Windows.
@@ -70,7 +73,8 @@ apps/windows/
     ├── server.py             local bridge: WebSocket <-> engine JSON lines, file serving, dialogs, PDF, terminal
     ├── workspace.py          the working copy (junctions where the Mac app uses symlinks)
     ├── agent_instructions.py what coding agents in the terminal are told about the deck
-    └── web/                  the editor: index.html, app.js, tools.js (themes, find), present.js (shows, Presenter View),
+    └── web/                  the editor: index.html, app.js, tools.js (themes, find), script.js (scripted presentations),
+                              present.js (shows, Presenter View),
                               style.css;
                               vendor/ holds CodeMirror and xterm.js
 ```

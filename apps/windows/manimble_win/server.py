@@ -372,6 +372,21 @@ class App:
             return {"ok": True, "dest": str(dest)}
         if w is None:
             raise RuntimeError("no deck open")
+        if cmd == "app.script_get":             # the presentation script: script.json beside the deck's code
+            f = w.work / "script.json"
+            try:
+                return {"script": json.loads(f.read_text(encoding="utf-8")) if f.is_file() else None}
+            except ValueError as exc:
+                raise RuntimeError(f"script.json cannot be read: {exc}")
+        if cmd == "app.script_set":
+            f, d = w.work / "script.json", a.get("script") or {}
+            plain = not d.get("steps") and all(d.get(k) is None for k in ("voice", "winVoice", "rate", "hold"))
+            if plain and "script.json" not in w.baseline:       # nothing in it, and the deck had none: leave no file
+                f.unlink(missing_ok=True)
+            else:
+                f.write_text(json.dumps({**d, "version": d.get("version", 1)}, indent=2, sort_keys=True,
+                                        ensure_ascii=False) + "\n", encoding="utf-8", newline=chr(10))
+            return {"ok": True}
         if cmd == "app.status":
             changed = w.changed_files
             return {"modified": bool(changed), "changed": changed}

@@ -35,9 +35,9 @@ function skipClip(d) {            // jump to the end of a clip that is still pla
 const relay = m => rpc("app.relay", { m: { ...m, from: CID } }, true).catch(() => {});
 
 // ------------------------------------------------------------ starting a show
-async function present(fromStart, anim, presenter = false) {
+async function present(fromStart, anim, presenter = false, scripted = false) {
   if (!S.name || showOpen()) return;
-  P.presenter = presenter; P.anim = anim; P.wantScene = fromStart ? null : S.name; P.wantStop = fromStart ? 0 : S.stop;
+  P.presenter = presenter; P.scripted = scripted && !presenter; P.anim = anim; P.wantScene = fromStart ? null : S.name; P.wantStop = fromStart ? 0 : S.stop;
   if (anim) {
     status("Building the animations… this renders every slide with Manim and can take a while.");
     P.waiting = true;
@@ -98,7 +98,11 @@ function goTo(i, play) {
   const p = P.pages[P.i];
   const ended = () => { if (p.autoNext && P.i < P.pages.length - 1) goTo(P.i + 1, true); else if (P.presenter) badge(); };
   if (P.presenter) { drawPresenter(play, ended); relay({ kind: "show", i: P.i, play }); }
-  else { $("#player-info").textContent = `${P.i + 1} / ${P.pages.length}`; drawPage(playerDisplay(), p, play, ended); }
+  else {
+    $("#player-info").textContent = `${P.i + 1} / ${P.pages.length}`;
+    drawPage(playerDisplay(), p, play, P.scripted ? null : ended);
+    if (P.scripted) scriptPage(p, play);                    // its script runs, then the show goes on by itself
+  }
 }
 function step(d) {
   if (d > 0) {
@@ -118,6 +122,7 @@ function showKey(ev) {
   ev.preventDefault();
   const k = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
   if (k === "Escape" || k === "q") return endShow();
+  if (P.scripted && (k === " " || k === "k")) return scriptToggle();
   if (["ArrowRight", "ArrowDown", " ", "Enter", "PageDown"].includes(k)) step(1);
   else if (["ArrowLeft", "ArrowUp", "Backspace", "PageUp"].includes(k)) step(-1);
   else if (k === "n") nextSlide(1);
@@ -143,7 +148,9 @@ function endShow() {
     $("#presenter").classList.remove("open");
     for (const s of ["#pv-cur", "#pv-next"]) pvDisplay(s).vid.pause();
   } else {
-    $("#player").classList.remove("open", "black"); $("#player-video").pause();
+    if (P.scripted) { stopRun(); const a = $("#player-pointer .scriptpointer"); if (a) a.style.display = "none"; }
+    P.scripted = false;
+    $("#player").classList.remove("open", "black", "paused"); $("#player-video").pause();
     if (window.pywebview && pywebview.api) pywebview.api.set_fullscreen(false);
     else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }

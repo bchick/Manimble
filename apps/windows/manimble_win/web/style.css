@@ -193,3 +193,35 @@ body.audience #player-info { display: none; }
 .themeside label { display: flex; gap: 6px; align-items: center; }
 .themeside .detail { color: var(--muted); font-size: 12px; min-height: 50px; }
 .modal select { width: 100%; margin-bottom: 12px; font-size: 14px; }
+
+#scriptpane { display: none; padding: 10px; border-bottom: 1px solid var(--line); max-height: 62%; overflow-y: auto; flex: none; }
+#side.script #scriptpane { display: block; }
+#side.script #inspector { display: none; }
+#scriptpane h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+#scriptpane .shead { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+#scriptpane .loc { color: var(--muted); font-size: 12px; }
+#scriptpane .step { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; background: var(--panel2); }
+#scriptpane .step.sel { border-color: var(--accent); }
+#scriptpane .step.running { box-shadow: 0 0 0 2px var(--ok); }
+#scriptpane .sh { display: flex; gap: 4px; align-items: center; margin-bottom: 5px; }
+#scriptpane .mini { padding: 0 6px; font-size: 11px; line-height: 18px; }
+#scriptpane textarea { font-family: "Segoe UI", sans-serif; font-size: 13px; }
+#scriptpane .f { display: flex; gap: 6px; align-items: center; margin-top: 5px; flex-wrap: wrap; }
+#scriptpane .f > label { color: var(--muted); }
+#scriptpane input[type=number] { width: 70px; }
+#scriptpane input[type=range] { width: 90px; }
+#scriptpane .adds { margin: 8px 0 12px; }
+#scriptpane .voice { border-top: 1px solid var(--line); padding-top: 10px; }
+#scriptpane .voice h3 { margin-bottom: 6px; }
+#scriptpane .voice .f > label { width: 62px; flex: none; }
+
+#scriptlayer, #player-pointer { position: absolute; pointer-events: none; z-index: 4; }
+#scriptlayer { inset: 0; }
+.scriptpointer { position: absolute; left: 0; top: 0; display: none; filter: drop-shadow(0 1px 2px #0009); }
+.scriptpointer svg { display: block; width: 100%; height: 100%; }
+#scriptlayer svg.track { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#scriptlayer svg.track polyline { fill: none; stroke: #ffcc33; stroke-dasharray: 6 5; stroke-linejoin: round; stroke-linecap: round; }
+#scriptlayer svg.track circle { fill: #ffcc33; stroke: #000; }
+#frame.capture { cursor: crosshair; }
+#player.paused::after { content: "paused"; position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 3px 14px;
+  border-radius: 12px; background: #000a; color: #fffc; font-size: 15px; }
