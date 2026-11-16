@@ -38,11 +38,14 @@ To update: `git pull`, then run `setup.ps1` again.
 - Terminal in the working copy (PowerShell through ConPTY), for Claude Code, Codex or Gemini CLI; their edits
   show on the slides within a couple of seconds
 - Presenting full screen, as still builds or with the Manim animations
+- Presenter View (Alt+F5): the show goes full screen on a second display, or into its own window with one display;
+  this window shows the current slide, the next build, slide and build notes, a timer and clock, and every slide
+  and build to jump to. B blacks out the audience display, R resets the timer, Swap Displays trades the screens
 - Import PowerPoint and Beamer; export PDF, PowerPoint, MP4 and a single Python file
 
 ## Not done yet
 
-Presenter View (notes, timer, second screen), narrated scripts, themes and dark mode, find and replace, slide
+Editing notes and Feedback Mode inside Presenter View, narrated scripts, themes and dark mode, find and replace, slide
 numbers, backgrounds, the icon library, feedback notes, copy and paste of objects, rulers and snapping guides, pen
 drawing, and `.manimble` packages. The engine already implements most of these; they need UI here.
 Keynote import and export use AppleScript and cannot work on Windows.
@@ -63,7 +66,8 @@ apps/windows/
     ├── server.py             local bridge: WebSocket <-> engine JSON lines, file serving, dialogs, PDF, terminal
     ├── workspace.py          the working copy (junctions where the Mac app uses symlinks)
     ├── agent_instructions.py what coding agents in the terminal are told about the deck
-    └── web/                  the editor: index.html, app.js, style.css; vendor/ holds CodeMirror and xterm.js
+    └── web/                  the editor: index.html, app.js, present.js (shows, Presenter View), style.css;
+                              vendor/ holds CodeMirror and xterm.js
 ```
 
 The bridge listens on `127.0.0.1` on a random port and requires a random token on every request, since one of its

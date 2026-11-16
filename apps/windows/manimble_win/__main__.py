@@ -53,11 +53,62 @@ def main():
     window = webview.create_window("Manimble", app.url(), width=1500, height=950, min_size=(1000, 650),
                                    background_color="#1e1f22", js_api=Api())
 
+    show = {"w": None}
+
+    def screen_of(win):
+        """The display a window is on (the one holding its centre), else the first."""
+        try:
+            cx, cy = win.x + win.width / 2, win.y + win.height / 2
+            for s in webview.screens:
+                if s.x <= cx < s.x + s.width and s.y <= cy < s.y + s.height:
+                    return s
+        except Exception:  # noqa: BLE001
+            pass
+        return webview.screens[0]
+
+    def close_show():
+        w, show["w"] = show["w"], None
+        if w is not None:
+            try:
+                w.destroy()
+            except Exception:  # noqa: BLE001
+                pass
+
+    def open_show(screen):
+        url = app.url() + "&view=audience"
+        if screen is not None:
+            show["w"] = webview.create_window("Manimble Show", url, screen=screen, fullscreen=True,
+                                              background_color="#000000")
+        else:
+            show["w"] = webview.create_window("Manimble Show", url, width=960, height=540, background_color="#000000")
+
+    def audience(op):
+        """Presenter View's audience window: on the other display, full screen, when there is one."""
+        mine = screen_of(window)
+        other = next((s for s in webview.screens if (s.x, s.y) != (mine.x, mine.y)), None)
+        if op == "close":
+            close_show()
+            return {"ok": True}
+        if op == "swap":
+            if other is None:
+                return {"ok": False, "error": "Swap Displays needs a second display."}
+            close_show()
+            window.restore()
+            window.move(other.x + 60, other.y + 60)
+            open_show(mine)
+            return {"ok": True}
+        close_show()
+        open_show(other)
+        return {"ok": True, "windowed": True, "second": other is not None}
+    app.audience = audience
+
     def closing():
         w = app.workspace
         if w and w.changed_files:
-            return window.create_confirmation_dialog(
-                "Unsaved changes", "This deck has changes that were not saved to the original. Close anyway?")
+            if not window.create_confirmation_dialog(
+                    "Unsaved changes", "This deck has changes that were not saved to the original. Close anyway?"):
+                return False
+        close_show()
         return True
     window.events.closing += closing
     webview.start(private_mode=False, storage_path=None)

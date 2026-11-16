@@ -75,6 +75,9 @@
           <button data-act="present">From This Slide <kbd>F5</kbd></button>
           <button data-act="present-start">From the Start</button>
           <button data-act="present-anim">With Animations, From This Slide</button>
+          <hr>
+          <button data-act="presenter">Presenter View <kbd>Alt+F5</kbd></button>
+          <button data-act="presenter-anim">Presenter View with Animations</button>
         </div>
       </div>
     </div>
@@ -114,6 +117,28 @@
     </div>
   </div>
   <div id="toasts"></div>
+  <div id="presenter">
+    <div id="pv-top">
+      <button data-act="pv-end" class="primary">End Show</button>
+      <button data-act="pv-swap" title="Put the show on this display and this window on the other">Swap Displays</button>
+      <button data-act="pv-black" title="Black out the audience display (B)">Black Out</button>
+      <span id="pv-hint"></span><span class="spacer"></span>
+      <span id="pv-timer" title="Time since the show started. Click, or press R, to reset.">0:00</span><span id="pv-clock"></span>
+    </div>
+    <div id="pv-body">
+      <div id="pv-list"></div>
+      <div id="pv-main">
+        <div class="pv-stage" id="pv-cur"><img alt="" draggable="false"><video muted playsinline></video><div id="pv-badge"></div></div>
+        <div id="pv-counter"><button data-act="pv-prev" title="Back">&#9664;</button><span id="pv-count"></span><button data-act="pv-next" title="Forward">&#9654;</button></div>
+      </div>
+      <div id="pv-right">
+        <div class="pv-label" id="pv-nextlabel">Next</div>
+        <div class="pv-stage" id="pv-next"><img alt="" draggable="false"><video muted playsinline></video></div>
+        <div class="pv-label">Slide notes</div><div class="pv-notes" id="pv-notes"></div>
+        <div class="pv-label">Build notes</div><div class="pv-notes" id="pv-bnotes"></div>
+      </div>
+    </div>
+  </div>
   <div id="player"><img id="player-img" alt=""><video id="player-video" playsinline></video><div id="player-info"></div></div>
 </div>
 <script>window.MANIMBLE_TOKEN = "__TOKEN__";</script>
@@ -122,5 +147,6 @@
 <script src="/static/vendor/xterm.js"></script>
 <script src="/static/vendor/addon-fit.js"></script>
 <script src="/static/app.js"></script>
+<script src="/static/present.js"></script>
 </body>
 </html>

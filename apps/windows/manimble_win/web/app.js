@@ -732,6 +732,8 @@ const actions = {
   },
   terminal: () => toggleTerminal(), "terminal-restart": () => restartTerminal(),
   present: () => present(false, false), "present-start": () => present(true, false), "present-anim": () => present(false, true),
+  "presenter": () => present(false, false, true), "presenter-anim": () => present(false, true, true),
+  "pv-end": () => endShow(), "pv-swap": () => swapDisplays(), "pv-black": () => blackOut(), "pv-prev": () => step(-1), "pv-next": () => step(1),
 };
 function closeMenus() { $$(".drop.open").forEach(d => d.classList.remove("open")); }
 document.addEventListener("click", ev => {
@@ -743,13 +745,13 @@ document.addEventListener("click", ev => {
 });
 
 document.addEventListener("keydown", ev => {
-  if ($("#player").classList.contains("open")) return playerKey(ev);
+  if (showOpen()) return showKey(ev);
   const tag = (ev.target.tagName || "").toLowerCase();
   const typing = tag === "input" || tag === "textarea" || ev.target.closest(".CodeMirror, #term");
   const ctrl = ev.ctrlKey || ev.metaKey;
   if (ctrl && ev.key.toLowerCase() === "s") { ev.preventDefault(); if (ev.target.closest(".CodeMirror") && codeDirty()) applyCode().then(save); else save(); return; }
   if (ctrl && ev.key === "`") { ev.preventDefault(); toggleTerminal(); return; }
-  if (ev.key === "F5") { ev.preventDefault(); present(ev.shiftKey, false); return; }
+  if (ev.key === "F5") { ev.preventDefault(); present(ev.shiftKey, false, ev.altKey); return; }
   if (typing || !S.info || !S.info.deck) return;
   if (ev.key === "Escape") { if (S.tool) setTool(S.tool); S.sel.clear(); S.drag = null; renderScene(); return; }
   if (ctrl && ev.key.toLowerCase() === "z") { ev.preventDefault(); undo(ev.shiftKey); return; }
@@ -809,82 +811,6 @@ function restartTerminal() {
   term.reset(); connectTerminal();
 }
 
-// ------------------------------------------------------------- presenting
-const P = { pages: [], i: 0, anim: false };
-async function present(fromStart, anim) {
-  if (!S.name) return;
-  const player = $("#player");
-  if (anim) {
-    status("Building the animations… this renders every slide with Manim and can take a while.");
-    P.anim = true; P.wantScene = fromStart ? null : S.name;
-    const r = await act("present", { height: 1080 }, "Present");
-    if (!r) status("");
-    return;                                                 // the `present` event opens the player
-  }
-  status("Preparing the slides…");
-  const r = await attempt(() => rpc("deck_pages", { current: S.name }), "Present");
-  status("");
-  if (!r) return;
-  P.anim = false; P.pages = []; let start = 0;
-  for (const s of r.slides) {
-    if (s.scene === S.name && !fromStart) start = P.pages.length + (S.stop < s.pages.length ? S.stop : 0);
-    for (const p of s.pages) P.pages.push({ scene: s.scene, img: p });
-  }
-  if (!P.pages.length) { toast("There is nothing to present yet.", true); return; }
-  openPlayer(start);
-}
-handlers.present = m => {
-  if (!P.anim) return;
-  if (m.phase === "building") status(`Building animations ${m.done ?? ""}/${m.total ?? ""} ${m.scene || ""}`);
-  else if (m.phase === "error") { status(""); toast("Could not build the animations: " + m.error, true); }
-  else if (m.phase === "ready") {
-    status("");
-    P.pages = m.slides.map(s => ({ scene: s.scene, file: s.file, kind: s.kind, loop: s.loop, autoNext: s.autoNext, rate: s.rate || 1 }));
-    let start = P.pages.findIndex(p => p.scene === P.wantScene);
-    openPlayer(Math.max(0, start));
-  }
-};
-function openPlayer(i) {
-  const player = $("#player");
-  player.classList.add("open");
-  if (window.pywebview && pywebview.api) pywebview.api.set_fullscreen(true);
-  else if (player.requestFullscreen) player.requestFullscreen().catch(() => {});
-  showPage(i, true);
-}
-function showPage(i, play) {
-  P.i = clamp(i, 0, P.pages.length - 1);
-  const p = P.pages[P.i], img = $("#player-img"), vid = $("#player-video");
-  $("#player-info").textContent = `${P.i + 1} / ${P.pages.length}`;
-  if (p.img || p.kind === "image") {
-    vid.pause(); vid.style.display = "none"; img.style.display = "block"; img.src = fileUrl(p.img || p.file);
-  } else {
-    img.style.display = "none"; vid.style.display = "block";
-    vid.loop = !!p.loop; vid.src = fileUrl(p.file); vid.playbackRate = p.rate || 1;
-    vid.onended = () => { if (p.autoNext && P.i < P.pages.length - 1) showPage(P.i + 1, true); };
-    if (play) vid.play().catch(() => {});
-    else vid.onloadedmetadata = () => { vid.currentTime = Math.max(0, vid.duration - 0.05); };
-  }
-}
-function closePlayer() {
-  $("#player").classList.remove("open"); $("#player-video").pause();
-  if (window.pywebview && pywebview.api) pywebview.api.set_fullscreen(false);
-  else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  const p = P.pages[P.i]; if (p && p.scene !== S.name) selectSlide(p.scene);
-}
-function playerKey(ev) {
-  ev.preventDefault();
-  if (ev.key === "Escape" || ev.key.toLowerCase() === "q") return closePlayer();
-  if (["ArrowRight", "ArrowDown", " ", "Enter", "PageDown", "n"].includes(ev.key)) {
-    const vid = $("#player-video"), p = P.pages[P.i];
-    if (p && p.file && !p.img && p.kind !== "image" && !vid.loop && !vid.ended && !vid.paused) { vid.currentTime = vid.duration || 1e6; return; }   // skip to the build's end
-    if (P.i < P.pages.length - 1) showPage(P.i + 1, true);
-  } else if (["ArrowLeft", "ArrowUp", "Backspace", "PageUp", "p"].includes(ev.key)) { if (P.i > 0) showPage(P.i - 1, false); }
-  else if (ev.key === "Home") showPage(0, true);
-  else if (ev.key === "End") showPage(P.pages.length - 1, false);
-}
-$("#player").addEventListener("click", () => playerKey({ key: "ArrowRight", preventDefault() {} }));
-document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && $("#player").classList.contains("open")) closePlayer(); });
-
 // ------------------------------------------------------------------ boot
 async function pollStatus() {
   if (!S.info || !S.info.deck) return;
@@ -908,4 +834,4 @@ async function boot() {
   new ResizeObserver(() => { layoutFrame(); drawOverlay(); if (fit && $("#drawer").classList.contains("open")) fit.fit(); }).observe($("#stagewrap"));
   window.addEventListener("beforeunload", ev => { if (S.info && S.info.deck && S.info.deck.modified) { ev.preventDefault(); ev.returnValue = ""; } });
 }
-boot();
+

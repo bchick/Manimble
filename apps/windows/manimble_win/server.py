@@ -173,6 +173,7 @@ class App:
         self.engine: Engine | None = None
         self.port = 0
         self.recent_file = wsmod.base() / "recent.json"
+        self.audience = None        # set by the desktop app: opens, closes and swaps the audience window
 
     # ------------------------------------------------------------ plumbing
     def broadcast(self, m: dict):
@@ -268,6 +269,13 @@ class App:
         w = self.workspace
         if cmd == "app.info":
             return self.info()
+        if cmd == "app.relay":                  # one window to the others: the presenter tells the audience window
+            self.broadcast({"event": "relay", "m": a.get("m")})
+            return {"ok": True}
+        if cmd in ("app.audience_open", "app.audience_close", "app.audience_swap"):
+            if self.audience is None:           # no desktop window: the page opens a browser window itself
+                return {"popup": True}
+            return await asyncio.to_thread(self.audience, cmd.rsplit("_", 1)[1])
         if cmd == "app.open":
             path = a.get("path") or await self.dialog("dir", title="Open a deck folder")
             if not path:
